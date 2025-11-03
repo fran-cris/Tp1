@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include "pico/stdlib.h"
+
+int main(void) {
+    // Inicializo el USB
+    stdio_init_all();
+    sleep_ms(1000);
+
+    // Inicialización de GPIOs
+    gpio_init(6);
+    gpio_init(7);
+    gpio_init(8);
+    gpio_init(20);
+    gpio_init(21);
+    gpio_init(22);
+
+    // Configuración de dirección
+    gpio_set_dir(6, GPIO_OUT);
+    gpio_set_dir(7, GPIO_OUT);
+    gpio_set_dir(8, GPIO_OUT);
+    gpio_set_dir(20, GPIO_IN);
+    gpio_set_dir(21, GPIO_IN);
+    gpio_set_dir(22, GPIO_IN);
+
+    // Activar resistencias internas pull-down para los pulsadores
+    gpio_pull_down(20);
+    gpio_pull_down(21);
+    gpio_pull_down(22);
+
+    bool led7_estado = false;   // Estado del LED7 (toggle)
+    bool led8_estado = false;   // Estado del LED8 (último guardado)
+    bool anterior21 = false;    // Estado anterior del botón 21
+
+    while (true) {
+        // -------- GPIO20 -> GPIO6 --------
+        if (gpio_get(20)) {
+            gpio_put(6, 1);  // Pulsador presionado
+        } else {
+            gpio_put(6, 0);  // Pulsador suelto
+        }
+
+        // -------- GPIO21 -> GPIO7 (toggle) --------
+        bool actual21 = gpio_get(21);
+        if (actual21 && !anterior21) {
+            led7_estado = !led7_estado;
+            gpio_put(7, led7_estado);
+            sleep_ms(200); // antirrebote
+        }
+        anterior21 = actual21;
+
+        // -------- GPIO22 -> GPIO8 (parpadeo) --------
+        if (gpio_get(22)) {
+            led8_estado = !led8_estado;
+            gpio_put(8, led8_estado);
+            sleep_ms(500);
+        }
+
+        // Pequeña pausa general para evitar lecturas rápidas
+        sleep_ms(10);
+    }
+
+    return 0;
+}
