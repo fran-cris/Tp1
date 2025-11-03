@@ -1,0 +1,92 @@
+contador:
+#include "pico/stdlib.h"
+
+// GPIOs para los ánodos
+#define DIG1  0
+#define DIG2  1
+#define DIG3  2
+#define DIG4  3
+#define DIGITS  (1 << DIG1 | 1 << DIG2 | 1 << DIG3 | 1 << DIG4)
+
+// GPIOs para los segmentos
+#define A 6
+#define B 7
+#define C 8
+#define D 9
+#define E 10
+#define F 11
+#define G 12
+#define SEGMENTS  (1 << A | 1 << B | 1 << C | 1 << D | 1 << E | 1 << F | 1 << G)
+
+// Definir los números (segmentos de los dígitos 0-9)
+#define CERO    (1<<A | 1<<B  | 1<<C | 1<<D | 1<<E | 1<<F) 
+#define UNO     (1<<B | 1<<C)
+#define DOS     (1<<A | 1<<B | 1<<G | 1<<E | 1<<D)
+#define TRES    (1<<A | 1<<B | 1<<C | 1<<D | 1<<G)
+#define CUATRO  (1<<F | 1<<G | 1<<B | 1<<C)
+#define CINCO   (1<<A | 1<<F | 1<<G | 1<<C | 1<<D)
+#define SEIS    (1<<A | 1<<F | 1<<E | 1<<D | 1<<C | 1<<G)
+#define SIETE   (1<<A | 1<<B | 1<<C)
+#define OCHO    (1<<A | 1<<B | 1<<C | 1<<D | 1<<E | 1<<F | 1<<G)
+#define NUEVE   (1<<A | 1<<B | 1<<C | 1<<D | 1<<F | 1<<G)
+
+// Arreglo con los segmentos de cada número
+const uint32_t digits[10] = {CERO, UNO, DOS, TRES, CUATRO, CINCO, SEIS, SIETE, OCHO, NUEVE};
+
+/**
+ * @brief Programa principal
+ */
+int main() {
+
+  // Inicializa grupo de pines de dígitos y segmentos
+  gpio_init_mask(DIGITS);
+  gpio_init_mask(SEGMENTS);
+
+  // Configura dirección de salida para dígitos y segmentos
+  gpio_set_dir_out_masked(DIGITS);
+  gpio_set_dir_out_masked(SEGMENTS);
+
+  // Contador de 0000 a 9999
+  uint16_t contador = 0;
+
+  while (true) {
+
+    // Desglosamos el contador en las 4 posiciones (miles, centenas, decenas, unidades)
+    uint8_t unidades = contador % 10;
+    uint8_t decenas = (contador / 10) % 10;
+    uint8_t centenas = (contador / 100) % 10;
+    uint8_t miles = (contador / 1000) % 10;
+
+    // Mostrar cada dígito, multiplexando los 4
+    for (int i = 0; i < 4; i++) {
+      // Apagar todos los dígitos
+      gpio_put_masked(DIGITS, ~0);
+
+      // Determinar el valor del dígito a mostrar
+      uint8_t digitValue = 0;
+      if (i == 0) digitValue = miles;      // Miles
+      if (i == 1) digitValue = centenas;  // Centenas
+      if (i == 2) digitValue = decenas;   // Decenas
+      if (i == 3) digitValue = unidades;  // Unidades
+
+      // Mostrar el número en el display (enviar los segmentos adecuados)
+      gpio_put_masked(SEGMENTS, digits[digitValue]);
+
+      // Activar el dígito correspondiente (encender el pin adecuado)
+      gpio_put_masked(DIGITS, ~(2<< (DIG1 + i)));
+
+      // Delay para el multiplexado (aproximadamente 5 ms por dígito)
+      sleep_ms(5);
+    }
+
+    // Incrementamos el contador y lo reiniciamos si llega a 9999
+    contador++;
+    if (contador > 9999) {
+      contador = 0;
+    }
+    
+    // Pequeña pausa para evitar que el contador se incremente demasiado rápido
+ 
+  }
+
+}
