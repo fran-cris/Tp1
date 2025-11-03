@@ -1,0 +1,82 @@
+actividad 3 punto 6
+#include "pico/stdlib.h"
+// GPIOs para los ánodos
+#define DIG1 0
+#define DIG2 1
+#define DIG3 2
+#define DIG4 3
+#define DIGITS (1 << DIG1 | 1 << DIG2 | 1 << DIG3 | 1 << DIG4)
+
+// GPIOs para los segmentos
+#define A 6
+#define B 7
+#define C 8
+#define D 9
+#define E 10
+#define F 11
+#define G 12
+#define SEGMENTS (1 << A | 1 << B | 1 << C | 1 << D | 1 << E | 1 << F | 1 << G)
+
+// Definiciones de letras (7 segmentos)
+#define A_LET (1<<A | 1<<B | 1<<C | 1<<E | 1<<F | 1<<G)
+#define C_LET (1<<A | 1<<F | 1<<E | 1<<D)
+#define E_LET (1<<A | 1<<F | 1<<G | 1<<E | 1<<D)
+#define F_LET (1<<A | 1<<F | 1<<G | 1<<E)
+#define I_LET (1<<E | 1<<F)
+#define L_LET (1<<F | 1<<E | 1<<D)
+#define N_LET (1<<A | 1<<B | 1<<C | 1<<E | 1<<F)
+#define O_LET (1<<A | 1<<B | 1<<C | 1<<D | 1<<E | 1<<F)
+#define P_LET (1<<A | 1<<B | 1<<F | 1<<G | 1<<E)
+#define R_LET (1<<A | 1<<B | 1<<F | 1<<G | 1<<E | 1<<C)
+#define S_LET (1<<A | 1<<F | 1<<G | 1<<C | 1<<D)
+#define BLANK 0
+
+typedef struct {
+    char ch;
+    int seg;
+} CharMap;
+
+// Mapeo de letras
+const CharMap chars[] = {
+    {'A', A_LET}, {'C', C_LET}, {'E', E_LET}, {'F', F_LET}, {'I', I_LET},
+    {'L', L_LET}, {'N', N_LET}, {'O', O_LET}, {'P', P_LET}, {'R', R_LET},
+    {'S', S_LET}, {' ', BLANK}
+};
+
+// Función para convertir carácter a segmentos
+int get_segments(char c) {
+    for (int i = 0; i < sizeof(chars)/sizeof(chars[0]); i++) {
+        if (chars[i].ch == c) return chars[i].seg;
+    }
+    return BLANK;
+}
+
+void show_char(int digit_pin, int segments) {
+    gpio_put_masked(DIGITS, DIGITS); // apagar todos
+    gpio_put_masked(SEGMENTS, segments);
+    gpio_put_masked(DIGITS, 1 << digit_pin);
+    sleep_ms(3);
+}
+
+int main() {
+    gpio_init_mask(DIGITS);
+    gpio_init_mask(SEGMENTS);
+    gpio_set_dir_out_masked(DIGITS);
+    gpio_set_dir_out_masked(SEGMENTS);
+
+    // Texto a mostrar
+    char text[] = " CRIS PENA ";  // con espacios para scroll más limpio
+    int len = sizeof(text) - 1;
+
+    while (true) {
+        for (int pos = 0; pos < len - 3; pos++) { // ventana de 4 caracteres
+            // Mostrar los 4 caracteres actuales muchas veces (para que se vea estable)
+            for (int rep = 0; rep < 100; rep++) {
+                for (int d = 0; d < 4; d++) {
+                    int segs = get_segments(text[pos + d]);
+                    show_char(d, segs);
+                }
+            }
+        }
+    }
+}
